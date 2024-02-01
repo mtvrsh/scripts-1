@@ -1,0 +1,7 @@
+install_dir := env_var_or_default('INSTALL_DIR', env_var('HOME')/'.local/bin')
+
+install:
+	cp screenshot.sh "{{ install_dir }}/screenshot"
+
+uninstall:
+	rm -f "{{ install_dir }}/screenshot"
