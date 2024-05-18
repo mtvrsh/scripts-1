@@ -1,8 +1,5 @@
 #!/bin/python
 
-from argparse import ArgumentParser
-from datetime import datetime
-from json import JSONDecodeError
 import asyncio
 import json
 import os
@@ -10,16 +7,18 @@ import signal
 import sys
 import threading
 import time
-from requests import RequestException
-from websockets import InvalidURI, InvalidHandshake, ConnectionClosed
+from argparse import ArgumentParser
+from datetime import datetime
+
 import requests
 import websockets
 import yaml
 
+
 class Channel:
     def __init__(self, id, config):
-        self.id        = id
-        self.timeout   = config['timeout']
+        self.id = id
+        self.timeout = config['timeout']
         self.separator = config['separator']
 
     def fetch(self):
@@ -29,7 +28,7 @@ class Channel:
                 return
             except KeyError as e:
                 print(f'error: Cannot fetch "{self.id}": {e} not found in response data, using next instance', file=sys.stderr, flush=True)
-            except RequestException as e:
+            except requests.RequestException as e:
                 print(f'error: Cannot fetch "{self.id}": {e}, using next instance', file=sys.stderr, flush=True)
             except BrokenPipeError:
                 devnull = os.open(os.devnull, os.O_WRONLY)
@@ -43,6 +42,7 @@ class Channel:
         diff = datetime.now(date.tzinfo) - date
 
         return time.strftime('%H:%M:%S', time.gmtime(diff.total_seconds()))
+
 
 class TT(Channel):
     def __init__(self, id, config):
@@ -64,6 +64,17 @@ class TT(Channel):
                 sep=self.separator,
                 flush=True
             )
+
+    def is_live(self):
+        for url in self.urls:
+            try:
+                channel = requests.get(f'{url}/api/users/{self.id}', timeout=self.timeout).json()['data']
+                return channel['isLive']
+            except (KeyError, requests.RequestException):
+                continue
+
+        return False
+
 
 class YT(Channel):
     def __init__(self, id, config):
@@ -87,6 +98,7 @@ class YT(Channel):
                     flush=True
                 )
 
+
 class Channels:
     def __init__(self, config):
         self.channels = [TT(id, config) for id in config['twitch']] \
@@ -101,12 +113,19 @@ class Channels:
         for thread in threads:
             thread.join()
 
+
 class Chat:
     def __init__(self, id: str, config: dict):
-        self.id  = id.split('/')[-1]
+        self.id = id.split('/')[-1]
         self.uri = [uri.replace('http', 'ws') for uri in config['safetwitch']]
+        self.is_live = TT(self.id, config).is_live()
 
     async def listen(self):
+        if not self.is_live:
+            print(f'{self.id} is offline')
+            return
+
+        print(f'Joining {self.id} chat... ', end='')
         for uri in self.uri:
             try:
                 async with websockets.connect(uri) as websocket:
@@ -119,7 +138,7 @@ class Chat:
 
                     async for message in websocket:
                         self.print(message)
-            except (OSError, InvalidURI, InvalidHandshake, ConnectionClosed) as e:
+            except (OSError, websockets.InvalidURI, websockets.InvalidHandshake, websockets.ConnectionClosed) as e:
                 print(f'error: Instance "{uri}": {e}, using next instance', file=sys.stderr)
 
         exit('error: No instance available')
@@ -132,7 +151,7 @@ class Chat:
                 print(f'{self.get_name(m)}: {m['message'].strip()}')
         except KeyError as e:
             print(f'error: "{e}" not found in {message}', file=sys.stderr)
-        except JSONDecodeError:
+        except json.JSONDecodeError:
             print(f'error: Cannot parse "{message}"', file=sys.stderr)
 
     def get_name(self, message: str) -> str:
@@ -145,28 +164,29 @@ class Chat:
 
         return f'\033[38;2;{r};{g};{b}m{message['tags']['display-name']}\033[0m'
 
+
 def get_config() -> dict:
     config_dir = os.environ.get('XDG_CONFIG_HOME', os.environ.get('HOME') + '/.config')
 
     with open(config_dir + '/ttv/config.yml') as f:
         return {
-            **{
                 'piped': ['https://pipedapi.kavin.rocks'],
                 'safetwitch': ['https://stbackend.drgns.space'],
                 'twitch': [],
                 'youtube': [],
                 'timeout': 5,
                 'separator': ';',
-                'youtube_chat_cmd': 'firefox --new-window \'%url\' &'
-            },
-            **yaml.safe_load(f)
+                'youtube_chat_cmd': 'firefox --new-window \'%url\' &',
+                **yaml.safe_load(f)
         }
+
 
 def get_youtube_video_id(url: str):
     if '/watch?' in url and (i := url.find('v=')):
-        return url[i+2:i+13]
-    
+        return url[i + 2:i + 13]
+
     return ''
+
 
 def open_youtube_chat(video_id: str, cmd: str):
     os.system(
@@ -174,6 +194,7 @@ def open_youtube_chat(video_id: str, cmd: str):
             '%url',
             f'https://www.youtube.com/live_chat?is_popout=1&v={video_id}'
     ))
+
 
 if __name__ == '__main__':
     signal.signal(signal.SIGINT, lambda s, f: [print(), exit()])
@@ -194,7 +215,7 @@ if __name__ == '__main__':
             open_youtube_chat(i, config['youtube_chat_cmd'])
         else:
             asyncio.run(Chat(args.chat, config).listen())
-            
+
         exit()
 
     channels = Channels(config)
