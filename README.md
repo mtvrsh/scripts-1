@@ -1,9 +1,9 @@
-# TTV
+# ttv
 
-Resource friendly, distraction free feed for Twitch and YouTube livestreams
-built with [SafeTwitch](https://codeberg.org/safetwitch) and [Piped](https://github.com/teampiped).
+Twitch and YouTube livestream feed built with
+[SafeTwitch](https://codeberg.org/safetwitch) and [Piped](https://github.com/teampiped)
 
-**Config**
+#### Config
 
 ```yaml
 # ~/.config/ttv/config.yml
@@ -22,12 +22,9 @@ safetwitch:
 
 timeout: 5
 separator: ;
-chat-badge-color-mod: 104;157;106
-chat-badge-color-vip: 177;98;134
-chat-badge-color-sub: 69;133;136
 ```
 
-**Dependencies**
+#### Dependencies
 
 - python
 - python-requests
