@@ -158,33 +158,23 @@ def get_config() -> dict:
             **yaml.safe_load(f)
         }
 
-async def main(args: ArgumentParser):
-    signal.signal(signal.SIGINT, lambda s, f: sys.exit(1))
-    config = get_config()
-
-    if args.chat:
-        await Chat(args.chat, config).listen()
-
-        return
-
-    channels = Channels(config)
-    channels.fetch()
-
 if __name__ == '__main__':
-    parser = ArgumentParser(
-        prog='ttv',
-        description='Feed for Twitch and YouTube livestreams'
-    )
+    signal.signal(signal.SIGINT, lambda s, f: sys.exit(1))
 
+    parser = ArgumentParser(description='Feed for Twitch and YouTube livestreams')
     parser.add_argument('-c', '--chat', help='Show chat for given channel id')
+    args = parser.parse_args()
 
     try:
-        asyncio.run(
-            main(parser.parse_args())
-        )
+        config = get_config()
     except FileNotFoundError:
         sys.exit('error: Config not found')
     except yaml.YAMLError as e:
         sys.exit('error: Config syntax: ' + str(e))
-    except KeyboardInterrupt:
-        print()
+
+    if args.chat:
+        asyncio.run(Chat(args.chat, config).listen())
+        exit()
+
+    channels = Channels(config)
+    channels.fetch()
