@@ -31,7 +31,7 @@ class Channel:
             except BrokenPipeError:
                 devnull = os.open(os.devnull, os.O_WRONLY)
                 os.dup2(devnull, sys.stdout.fileno())
-                sys.exit(1)
+                exit()
 
         print(f'error: Cannot fetch {self.id}', file=sys.stderr, flush=True)
 
@@ -159,7 +159,7 @@ def get_config() -> dict:
         }
 
 if __name__ == '__main__':
-    signal.signal(signal.SIGINT, lambda s, f: sys.exit(1))
+    signal.signal(signal.SIGINT, lambda s, f: [print(), exit()])
 
     parser = ArgumentParser(description='Feed for Twitch and YouTube livestreams')
     parser.add_argument('-c', '--chat', help='Show chat for given channel id')
@@ -168,9 +168,9 @@ if __name__ == '__main__':
     try:
         config = get_config()
     except FileNotFoundError:
-        sys.exit('error: Config not found')
+        exit('error: Config not found')
     except yaml.YAMLError as e:
-        sys.exit('error: Config syntax: ' + str(e))
+        exit('error: Config syntax: ' + str(e))
 
     if args.chat:
         asyncio.run(Chat(args.chat, config).listen())
