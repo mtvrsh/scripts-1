@@ -126,7 +126,7 @@ class Chat:
             m = json.loads(message)
 
             if m['type'] == 'PRIVMSG':
-                print(f'{self.get_name(m)}: {m['message']}', end='')
+                print(f'{self.get_name(m)}: {m['message'].strip()}')
         except KeyError as e:
             print(f'error: "{e}" not found in {message}', file=sys.stderr)
         except JSONDecodeError:
