@@ -10,6 +10,7 @@ import signal
 import sys
 import threading
 import time
+from requests import RequestException
 from websockets import InvalidURI, InvalidHandshake, ConnectionClosed
 import requests
 import websockets
@@ -26,14 +27,16 @@ class Channel:
             try:
                 self._fetch(url)
                 return
-            except (KeyError, requests.RequestException):
-                continue
+            except KeyError as e:
+                print(f'error: Cannot fetch "{self.id}": {e} not found in response data, using next instance', file=sys.stderr, flush=True)
+            except RequestException as e:
+                print(f'error: Cannot fetch "{self.id}": {e}, using next instance', file=sys.stderr, flush=True)
             except BrokenPipeError:
                 devnull = os.open(os.devnull, os.O_WRONLY)
                 os.dup2(devnull, sys.stdout.fileno())
                 exit()
 
-        print(f'error: Cannot fetch {self.id}', file=sys.stderr, flush=True)
+        print(f'error: Cannot fetch "{self.id}": No instance available', file=sys.stderr, flush=True)
 
     def _date_to_clock(self, date: str) -> str:
         date = datetime.strptime(date, '%Y-%m-%dT%H:%M:%S%z')
@@ -52,14 +55,15 @@ class TT(Channel):
 
         if channel['isLive']:
             print(
-                self.separator.join([
-                    channel['username'],
-                    channel['stream']['title'],
-                    channel['stream']['topic'],
-                    str(channel['stream']['viewers']),
-                    self._date_to_clock(channel['stream']['startedAt'].replace('Z', '+00:00')),
-                    'https://twitch.tv/' + self.id
-            ]), flush=True)
+                channel['username'],
+                channel['stream']['title'],
+                channel['stream']['topic'],
+                channel['stream']['viewers'],
+                self._date_to_clock(channel['stream']['startedAt'].replace('Z', '+00:00')),
+                'https://twitch.tv/' + self.id,
+                sep=self.separator,
+                flush=True
+            )
 
 class YT(Channel):
     def __init__(self, id, config):
@@ -72,17 +76,16 @@ class YT(Channel):
 
         for video in videos:
             if video['duration'] == -1:
-                stream = requests.get(f'{url}/streams/{video["url"][9:]}', timeout=self.timeout).json()
-
                 print(
-                    self.separator.join([
-                        stream['uploader'],
-                        stream['title'],
-                        stream['category'],
-                        str(stream['views']),
-                        self._date_to_clock(stream['uploadDate']),
-                        'https://youtube.com' + video['url']
-                ]), flush=True)
+                    video['uploaderName'],
+                    video['title'],
+                    '',
+                    video['views'],
+                    '',
+                    'https://youtube.com' + video['url'],
+                    sep=self.separator,
+                    flush=True
+                )
 
 class Channels:
     def __init__(self, config):
