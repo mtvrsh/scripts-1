@@ -156,10 +156,24 @@ def get_config() -> dict:
                 'twitch': [],
                 'youtube': [],
                 'timeout': 5,
-                'separator': ';'
+                'separator': ';',
+                'youtube_chat_cmd': 'firefox --new-window \'%url\' &'
             },
             **yaml.safe_load(f)
         }
+
+def get_youtube_video_id(url: str):
+    if '/watch?' in url and (i := url.find('v=')):
+        return url[i+2:i+13]
+    
+    return ''
+
+def open_youtube_chat(video_id: str, cmd: str):
+    os.system(
+        cmd.replace(
+            '%url',
+            f'https://www.youtube.com/live_chat?is_popout=1&v={video_id}'
+    ))
 
 if __name__ == '__main__':
     signal.signal(signal.SIGINT, lambda s, f: [print(), exit()])
@@ -176,7 +190,11 @@ if __name__ == '__main__':
         exit('error: Config syntax: ' + str(e))
 
     if args.chat:
-        asyncio.run(Chat(args.chat, config).listen())
+        if i := get_youtube_video_id(args.chat):
+            open_youtube_chat(i, config['youtube_chat_cmd'])
+        else:
+            asyncio.run(Chat(args.chat, config).listen())
+            
         exit()
 
     channels = Channels(config)
