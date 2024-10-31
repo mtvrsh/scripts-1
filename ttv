@@ -10,8 +10,10 @@ import signal
 import sys
 import threading
 import time
+
 from requests import RequestException
 from websockets import InvalidURI, InvalidHandshake, ConnectionClosed
+from yaml import YAMLError
 import requests
 import websockets
 import yaml
@@ -28,15 +30,15 @@ class Channel:
                 self._fetch(url)
                 return
             except KeyError as e:
-                print(f'error: Cannot fetch "{self.id}": {e} not found in response data, using next instance', file=sys.stderr, flush=True)
+                print(f'error: Cannot fetch "{self.id}": {e} not found in response data, using next instance', file=sys.stderr)
             except RequestException as e:
-                print(f'error: Cannot fetch "{self.id}": {e}, using next instance', file=sys.stderr, flush=True)
+                print(f'error: Cannot fetch "{self.id}": {e}, using next instance', file=sys.stderr)
             except BrokenPipeError:
                 devnull = os.open(os.devnull, os.O_WRONLY)
                 os.dup2(devnull, sys.stdout.fileno())
                 exit()
 
-        print(f'error: Cannot fetch "{self.id}": No instance available', file=sys.stderr, flush=True)
+        print(f'error: Cannot fetch "{self.id}": No instance available', file=sys.stderr)
 
     def _date_to_clock(self, date: str) -> str:
         date = datetime.strptime(date, '%Y-%m-%dT%H:%M:%S%z')
@@ -122,7 +124,7 @@ class Chat:
             except (OSError, InvalidURI, InvalidHandshake, ConnectionClosed) as e:
                 print(f'error: Instance "{uri}": {e}, using next instance', file=sys.stderr)
 
-        exit('error: No instance available')
+        print('error: No instance available', file=sys.stderr)
 
     def print(self, message: str):
         try:
@@ -172,15 +174,14 @@ if __name__ == '__main__':
         config = get_config()
     except FileNotFoundError:
         exit('error: Config not found')
-    except yaml.YAMLError as e:
+    except YAMLError as e:
         exit('error: Config syntax: ' + str(e))
 
     if args.chat:
         asyncio.run(
             Chat(args.chat, config).listen()
         )
-            
+
         exit()
 
-    channels = Channels(config)
-    channels.fetch()
+    Channels(config).fetch()
