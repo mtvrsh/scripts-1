@@ -22,7 +22,6 @@ safetwitch:
 
 timeout: 5
 separator: ;
-youtube_chat_cmd: firefox --new-window '%url' &
 ```
 
 #### Dependencies
