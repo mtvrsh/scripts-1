@@ -3,6 +3,8 @@
 Twitch and YouTube livestream feed built with
 [SafeTwitch](https://codeberg.org/safetwitch) and [Piped](https://github.com/teampiped)
 
+![demo](demo/ttv.webm)
+
 #### Config
 
 ```yaml
