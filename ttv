@@ -167,7 +167,7 @@ if __name__ == '__main__':
     signal.signal(signal.SIGINT, lambda s, f: [print(), exit()])
 
     parser = ArgumentParser(description='Feed for Twitch and YouTube livestreams')
-    parser.add_argument('-c', '--chat', help='Show chat for given channel id')
+    parser.add_argument('-c', '--chat', help='Show Twitch Chat for given channel id or url')
     args = parser.parse_args()
 
     try:
