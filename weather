@@ -40,7 +40,7 @@ try:
         timeout=args.t
     ).json()
 
-    print("{}{:.0f}{}".format(
+    print("{}{:z.0f}{}".format(
         icon(wtr["current"]["weather_code"], wtr["current"]["is_day"]),
         wtr["current"]["temperature_2m"],
         wtr["current_units"]["temperature_2m"]
