@@ -33,7 +33,7 @@ ttvmenu() {
   ttv | sort | column -ts";" | fzf -m | grep -oE "https://[^[:space:]]+" | \
 
   while read -r url; do
-    foot -a hidden -- streamlink --player mpv "$url" best &
+    $TERMINAL -- streamlink --player mpv "$url" best &
   done
 }
 ```
